@@ -1,7 +1,7 @@
-#include "logger/async_logging.h"
-#include "logger/context.hpp"
-#include "logger/log_file.h"
-#include "logger/time_stamp.h"
+#include "elog/async_logging.h"
+#include "elog/context.h"
+#include "elog/log_file.h"
+#include "elog/timestamp.h"
 #include <atomic>
 #include <cassert>
 #include <chrono>
@@ -14,8 +14,8 @@
 #include <utility>
 #include <vector>
 
-namespace logger
-{
+using namespace elog;
+
 AsyncLogging::AsyncLogging(const std::string& basename,
 						   const std::string& prefix, int roll_size,
 						   int flush_interval)
@@ -127,7 +127,7 @@ void AsyncLogging::threadWorker()
 			// 保留两个
 			std::string err = std::format(
 				"Dropped log messages at {}, {} larger buffers\n",
-				TimeStamp::now().toFormattedString(), buf2write.size() - 2);
+				Timestamp::now().toFormattedString(), buf2write.size() - 2);
 			std::cerr << err;
 
 			out_file.append(err.c_str(), err.size());
@@ -166,4 +166,3 @@ void AsyncLogging::threadWorker()
 
 	out_file.flush();
 }
-} // namespace logger

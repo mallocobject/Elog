@@ -1,17 +1,17 @@
-#ifndef LOGGER_CONTEXT_HPP
-#define LOGGER_CONTEXT_HPP
+#ifndef ELOG_CONTEXT_H
+#define ELOG_CONTEXT_H
 
-#include "logger/time_stamp.h"
+#include "elog/timestamp.h"
 #include <cstdint>
 #include <string>
 #include <utility>
-namespace logger
+namespace elog
 {
 struct Context
 {
-	TimeStamp time_stamp{0};
+	Timestamp timestamp{0};
 	uint64_t tid{0};
-	int level{2};
+	uint8_t level{2};
 
 	struct Data
 	{
@@ -25,7 +25,7 @@ struct Context
 
 	Context() = default;
 
-	explicit Context(int _level, const char* _file, const char* _func,
+	explicit Context(uint8_t _level, const char* _file, const char* _func,
 					 int _line)
 		: level(_level),
 		  data({.line = _line, .short_name = _file, .func = _func})
@@ -48,9 +48,9 @@ struct Context
 		return *this;
 	}
 
-	Context& withTimeStamp(TimeStamp time)
+	Context& withTimestamp(Timestamp time)
 	{
-		time_stamp = time;
+		timestamp = time;
 		return *this;
 	}
 
@@ -60,7 +60,7 @@ struct Context
 		return *this;
 	}
 
-	Context& withLevel(int _level)
+	Context& withLevel(uint8_t _level)
 	{
 		level = _level;
 		return *this;
@@ -72,6 +72,6 @@ struct Context
 		return *this;
 	}
 };
-} // namespace logger
+} // namespace elog
 
 #endif

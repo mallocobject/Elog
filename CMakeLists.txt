@@ -1,16 +1,30 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(logger)
+project(Elog)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(logger)
+set(LOG_LEVEL "TRACE" CACHE STRING "elog level")
+set_property(CACHE LOG_LEVEL PROPERTY STRINGS 
+    TRACE
+    DEBUG
+    INFO
+    WARN
+    ERROR
+    FATAL
+)
 
-add_executable(logger_app main.cpp)
+message(STATUS "Current logger level: ${LOG_LEVEL}")
+add_definitions(-DELOG_LEVEL_SETTING=LYNX_${LOG_LEVEL})
+message(STATUS "cmake build mode: ${CMAKE_BUILD_TYPE}")
 
-target_link_libraries(logger_app PRIVATE logger_lib)
+add_subdirectory(elog)
 
-target_compile_definitions(logger_app PRIVATE 
+add_executable(Elog main.cpp)
+
+target_link_libraries(Elog PRIVATE elog_lib)
+
+target_compile_definitions(Elog PRIVATE 
     LYNX_WEB_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 )

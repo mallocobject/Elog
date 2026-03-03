@@ -1,7 +1,7 @@
-#ifndef LOGGER_NONCOPYABLE_HPP
-#define LOGGER_NONCOPYABLE_HPP
+#ifndef ELOG_NONCOPYABLE_H
+#define ELOG_NONCOPYABLE_H
 
-namespace logger
+namespace elog
 {
 class noncopyable
 {
@@ -12,6 +12,6 @@ class noncopyable
 	noncopyable(const noncopyable&) = delete;
 	noncopyable& operator=(const noncopyable&) = delete;
 };
-} // namespace logger
+} // namespace elog
 
 #endif

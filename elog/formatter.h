@@ -1,12 +1,12 @@
-#ifndef LOGGER_FORMATTER_HPP
-#define LOGGER_FORMATTER_HPP
+#ifndef ELOG_FORMATTER_H
+#define ELOG_FORMATTER_H
 
-#include "logger/context.hpp"
-#include "logger/flags.hpp"
+#include "elog/context.h"
+#include "elog/flags.h"
 #include <format>
 #include <iterator>
 #include <string>
-namespace logger
+namespace elog
 {
 class Formatter
 {
@@ -29,24 +29,8 @@ class Formatter
 		std::string formatted_log;
 		auto out = std::back_inserter(formatted_log);
 
-		// if (flags_ & (Flags::kDate | Flags::kTime))
-		// {
-		// 	std::format_to(out, "{}",
-		// 				   ctx.time_stamp.toFormattedString(true, true));
-		// }
-		// else if (flags_ & Flags::kDate)
-		// {
-		// 	std::format_to(out, "{}",
-		// 				   ctx.time_stamp.toFormattedString(true, false));
-		// }
-		// else if (flags_ & (Flags::kDate | Flags::kTime))
-		// {
-		// 	std::format_to(out, "{}",
-		// 				   ctx.time_stamp.toFormattedString(false, true));
-		// }
-
 		std::format_to(out, "{}",
-					   ctx.time_stamp.toFormattedString(
+					   ctx.timestamp.toFormattedString(
 						   static_cast<bool>(flags_ & Flags::kDate),
 						   static_cast<bool>(flags_ & Flags::kTime)));
 
@@ -102,6 +86,6 @@ class Formatter
 		}
 	}
 };
-} // namespace logger
+} // namespace elog
 
 #endif

@@ -1,16 +1,16 @@
-#include "logger/logger.h"
-#include "logger/async_logging.h"
-#include "logger/context.hpp"
-#include "logger/current_thread.hpp"
-#include "logger/time_stamp.h"
+#include "elog/logger.h"
+#include "elog/async_logging.h"
+#include "elog/context.h"
+#include "elog/current_thread.h"
+#include "elog/timestamp.h"
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <memory>
-#include <mutex>
 #include <pthread.h>
 
-namespace logger
-{
+using namespace elog;
+
 std::unique_ptr<AsyncLogging> Logger::async_logging_ = nullptr;
 std::atomic<bool> Logger::async_enabled_(false);
 
@@ -69,10 +69,10 @@ void Logger::appendAsyncLog(LogLevel level, const std::string& message,
 		return;
 	}
 
-	static thread_local Context ctx(CurrentThread::tid());
+	thread_local Context ctx(CurrentThread::tid());
 
-	ctx.withTimeStamp(TimeStamp::now())
-		.withLevel(level)
+	ctx.withTimestamp(Timestamp::now())
+		.withLevel(static_cast<uint8_t>(level))
 		.WithData(Context::Data{.line = line,
 								.full_name = file,
 								.short_name = LogStream::getShortName(file),
@@ -81,4 +81,3 @@ void Logger::appendAsyncLog(LogLevel level, const std::string& message,
 
 	async_logging_->pushMessage(ctx);
 }
-} // namespace logger

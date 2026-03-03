@@ -1,8 +1,9 @@
-#ifndef LOGGER_FLAGS_HPP
-#define LOGGER_FLAGS_HPP
+#ifndef ELOG_FLAGS_H
+#define ELOG_FLAGS_H
 
 #include <cstdint>
-namespace logger
+
+namespace elog
 {
 class Flags
 {
@@ -82,6 +83,6 @@ class Flags
 		return value_;
 	}
 };
-} // namespace logger
+} // namespace elog
 
 #endif

@@ -1,11 +1,12 @@
-#ifndef LOGGER_FILE_APPENDER_H
-#define LOGGER_FILE_APPENDER_H
+#ifndef ELOG_FILE_APPENDER_H
+#define ELOG_FILE_APPENDER_H
 
-#include "logger/noncopyable.hpp"
+#include "elog/noncopyable.h"
 #include <cstddef>
 #include <cstdio>
 #include <filesystem>
-namespace logger
+
+namespace elog
 {
 class FileAppender : noncopyable
 {
@@ -40,6 +41,6 @@ class FileAppender : noncopyable
   private:
 	void ensureDirectoryExists() const;
 };
-} // namespace logger
+} // namespace elog
 
 #endif

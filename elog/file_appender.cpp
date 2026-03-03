@@ -1,10 +1,11 @@
-#include "logger/file_appender.h"
+#include "elog/file_appender.h"
 #include <cstdio>
 #include <filesystem>
+#include <string>
 #include <system_error>
 
-namespace logger
-{
+using namespace elog;
+
 static constexpr size_t BUFFER_SIZE = 64 * 1024;
 
 namespace
@@ -104,7 +105,8 @@ void FileAppender::ensureDirectoryExists() const
 
 	if (ec)
 	{
-		throw_system_error("Failed to check directory: " + ec.message());
+		throw_system_error("Failed to check directory: " +
+						   std::string(parent_path));
 	}
 
 	if (!std::filesystem::exists(status))
@@ -119,4 +121,3 @@ void FileAppender::ensureDirectoryExists() const
 							parent_path.string());
 	}
 }
-} // namespace logger

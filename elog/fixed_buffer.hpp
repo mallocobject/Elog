@@ -1,11 +1,11 @@
-#ifndef LOGGER_FIXED_BUFFER_HPP
-#define LOGGER_FIXED_BUFFER_HPP
+#ifndef ELOG_FIXED_BUFFER_HPP
+#define ELOG_FIXED_BUFFER_HPP
 
-#include "logger/context.hpp"
-#include "logger/noncopyable.hpp"
+#include "elog/context.h"
+#include "elog/noncopyable.h"
 #include <cassert>
 #include <cstddef>
-namespace logger
+namespace elog
 {
 template <size_t N> class FixedBuffer : public noncopyable
 {
@@ -118,6 +118,6 @@ template <size_t N> class FixedBuffer : public noncopyable
 		return ctxs_[index];
 	}
 };
-} // namespace logger
+} // namespace elog
 
 #endif

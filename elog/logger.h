@@ -1,47 +1,48 @@
-#ifndef LOGGER_LOGGER_H
-#define LOGGER_LOGGER_H
+#ifndef LYNX_ELOG_ELOG_H
+#define LYNX_ELOG_ELOG_H
 
-#include "logger/current_thread.hpp"
-#include "logger/noncopyable.hpp"
-#include "logger/time_stamp.h"
+#include "elog/current_thread.h"
+#include "elog/noncopyable.h"
+#include "elog/timestamp.h"
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <format>
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <sstream>
 #include <string_view>
 #include <type_traits>
-namespace logger
-{
 
-enum LogLevel
+namespace elog
+{
+enum class LogLevel : uint8_t
 {
 	TRACE = 0,
 	DEBUG,
 	INFO,
 	WARN,
 	ERROR,
-	FATAL
+	FATAL,
+	OFF
 };
 
 constexpr std::string_view logLevel2String(LogLevel level)
 {
 	switch (level)
 	{
-	case TRACE:
+	case LogLevel::TRACE:
 		return "TRACE";
-	case DEBUG:
+	case LogLevel::DEBUG:
 		return "DEBUG";
-	case INFO:
+	case LogLevel::INFO:
 		return "INFO";
-	case WARN:
+	case LogLevel::WARN:
 		return "WARN";
-	case ERROR:
+	case LogLevel::ERROR:
 		return "ERROR";
-	case FATAL:
+	case LogLevel::FATAL:
 		return "FATAL";
 	default:
 		return "UNKNOWN";
@@ -52,37 +53,36 @@ constexpr const char* logLevel2Color(LogLevel level)
 {
 	switch (level)
 	{
-	case TRACE:
+	case LogLevel::TRACE:
 		return "\033[90m";
-	case DEBUG:
+	case LogLevel::DEBUG:
 		return "\033[36m";
-	case INFO:
+	case LogLevel::INFO:
 		return "\033[32m";
-	case WARN:
+	case LogLevel::WARN:
 		return "\033[33m";
-	case ERROR:
+	case LogLevel::ERROR:
 		return "\033[31m";
-	case FATAL:
+	case LogLevel::FATAL:
 		return "\033[35m";
 	default:
 		return "\033[0m";
 	}
 }
-} // namespace logger
+} // namespace elog
 
 template <>
-struct std::formatter<logger::LogLevel> : std::formatter<std::string_view>
+struct std::formatter<elog::LogLevel> : std::formatter<std::string_view>
 {
-	auto format(logger::LogLevel level, std::format_context& ctx) const
+	auto format(elog::LogLevel level, std::format_context& ctx) const
 	{
 		return std::formatter<std::string_view>::format(
-			logger::logLevel2String(level), ctx);
+			elog::logLevel2String(level), ctx);
 	}
 };
 
-namespace logger
+namespace elog
 {
-
 class NullLogger : public noncopyable
 {
   public:
@@ -101,8 +101,6 @@ class NullLogger : public noncopyable
 	}
 };
 
-// inline NullLogger null_logger;
-
 class AsyncLogging;
 class Logger : public noncopyable
 {
@@ -110,7 +108,6 @@ class Logger : public noncopyable
   private:
 	static std::unique_ptr<AsyncLogging> async_logging_;
 	static std::atomic<bool> async_enabled_;
-	// static std::mutex mtx_;
 
   public:
 	/**
@@ -137,7 +134,6 @@ class Logger : public noncopyable
 	{
 	  private:
 		LogLevel level_;
-		std::ostringstream stream_;
 
 		const char* file_;
 		const char* func_;
@@ -151,38 +147,39 @@ class Logger : public noncopyable
 
 		~LogStream()
 		{
-			if (!stream_.str().empty())
+			if (!CurrentThread::str().empty())
 			{
 				if (Logger::isAsyncEnabled())
 				{
-					Logger::appendAsyncLog(level_, stream_.str(), file_, func_,
-										   line_);
+					Logger::appendAsyncLog(level_, CurrentThread::str(), file_,
+										   func_, line_);
 				}
 				else
 				{
 					std::string formatted_log = std::format(
 						"{}{}[{}]{} {}:{} {}()-> {}\033[0m\n",
 						logLevel2Color(level_),
-						TimeStamp::now().toFormattedString(),
+						Timestamp::now().toFormattedString(),
 						CurrentThread::tid(), level_, getShortName(file_),
-						line_, func_, stream_.str());
+						line_, func_, CurrentThread::str());
 
 					std::cout << formatted_log;
 				}
 			}
+			CurrentThread::str().clear();
 		}
 
 		template <typename T> LogStream& operator<<(const T& val)
 		{
-			stream_ << val;
+			std::format_to(std::back_inserter(CurrentThread::str()), "{}", val);
 			return *this;
 		}
 
-		LogStream& operator<<(std::ostream& (*manip)(std::ostream))
-		{
-			stream_ << manip;
-			return *this;
-		}
+		// LogStream& operator<<(std::ostream& (*manip)(std::ostream))
+		// {
+		// 	CurrentThread::oss() << manip;
+		// 	return *this;
+		// }
 
 		static const char* getShortName(const char* file)
 		{
@@ -202,36 +199,42 @@ class Logger : public noncopyable
 	};
 };
 
-#ifndef LOGGER_LEVEL_SETTING
-#define LOGGER_LEVEL_SETTING logger::INFO
+#define LYNX_TRACE LogLevel::TRACE
+#define LYNX_DEBUG LogLevel::DEBUG
+#define LYNX_INFO LogLevel::INFO
+#define LYNX_WARN LogLevel::WARN
+#define LYNX_ERROR LogLevel::ERROR
+#define LYNX_FATAL LogLevel::FATAL
+#define LYNX_OFF LogLevel::OFF
+
+#ifndef ELOG_LEVEL_SETTING
+#define ELOG_LEVEL_SETTING LYNX_INFO
 #endif
 
-constexpr LogLevel GLOBAL_MIN_LEVEL =
-	static_cast<LogLevel>(LOGGER_LEVEL_SETTING);
+constexpr LogLevel GLOBAL_MIN_LEVEL = static_cast<LogLevel>(ELOG_LEVEL_SETTING);
 
 template <LogLevel level>
 using SelectedLogStream = std::conditional_t<level >= GLOBAL_MIN_LEVEL,
 											 Logger::LogStream, NullLogger>;
-
-} // namespace logger
+} // namespace elog
 
 #define LOG_TRACE                                                              \
-	logger::SelectedLogStream<logger::TRACE>(logger::TRACE, __FILE__,          \
-											 __func__, __LINE__)
+	elog::SelectedLogStream<elog::LogLevel::TRACE>(                            \
+		elog::LogLevel::TRACE, __FILE__, __func__, __LINE__)
 #define LOG_DEBUG                                                              \
-	logger::SelectedLogStream<logger::DEBUG>(logger::DEBUG, __FILE__,          \
-											 __func__, __LINE__)
+	elog::SelectedLogStream<elog::LogLevel::DEBUG>(                            \
+		elog::LogLevel::DEBUG, __FILE__, __func__, __LINE__)
 #define LOG_INFO                                                               \
-	logger::SelectedLogStream<logger::INFO>(logger::INFO, __FILE__, __func__,  \
-											__LINE__)
+	elog::SelectedLogStream<elog::LogLevel::INFO>(                             \
+		elog::LogLevel::INFO, __FILE__, __func__, __LINE__)
 #define LOG_WARN                                                               \
-	logger::SelectedLogStream<logger::WARN>(logger::WARN, __FILE__, __func__,  \
-											__LINE__)
+	elog::SelectedLogStream<elog::LogLevel::WARN>(                             \
+		elog::LogLevel::WARN, __FILE__, __func__, __LINE__)
 #define LOG_ERROR                                                              \
-	logger::SelectedLogStream<logger::ERROR>(logger::ERROR, __FILE__,          \
-											 __func__, __LINE__)
+	elog::SelectedLogStream<elog::LogLevel::ERROR>(                            \
+		elog::LogLevel::ERROR, __FILE__, __func__, __LINE__)
 #define LOG_FATAL                                                              \
-	logger::SelectedLogStream<logger::FATAL>(logger::FATAL, __FILE__,          \
-											 __func__, __LINE__)
+	elog::SelectedLogStream<elog::LogLevel::FATAL>(                            \
+		elog::LogLevel::FATAL, __FILE__, __func__, __LINE__)
 
 #endif

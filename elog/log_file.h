@@ -1,10 +1,10 @@
-#ifndef LOGGER_LOG_FILE_H
-#define LOGGER_LOG_FILE_H
+#ifndef ELOG_LOG_FILE_H
+#define ELOG_LOG_FILE_H
 
-#include "logger/noncopyable.hpp"
+#include "elog/noncopyable.h"
 #include <memory>
 #include <string>
-namespace logger
+namespace elog
 {
 class FileAppender;
 class LogFile : public noncopyable
@@ -38,6 +38,6 @@ class LogFile : public noncopyable
 	void rollFile(const time_t* cached_now = nullptr);
 	std::string getFilename(const time_t& now);
 };
-} // namespace logger
+} // namespace elog
 
 #endif

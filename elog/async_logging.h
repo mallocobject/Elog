@@ -1,22 +1,23 @@
-#ifndef LOGGER_ASYNCLOGGING_H
-#define LOGGER_ASYNCLOGGING_H
+#ifndef ELOG_ASYNCLOGGING_H
+#define ELOG_ASYNCLOGGING_H
 
-#include "logger/context.hpp"
-#include "logger/fixed_buffer.hpp"
-#include "logger/formatter.hpp"
-#include "logger/noncopyable.hpp"
+#include "elog/context.h"
+#include "elog/fixed_buffer.hpp"
+#include "elog/formatter.h"
+#include "elog/noncopyable.h"
 #include <atomic>
 #include <condition_variable>
 #include <latch>
 #include <mutex>
 #include <thread>
 #include <vector>
-namespace logger
+
+namespace elog
 {
 enum
 {
 	kSmallBuffer = 4096,
-	kLargeBuffer = 65536
+	kLargeBuffer = 65536,
 };
 
 class AsyncLogging : public noncopyable
@@ -55,6 +56,6 @@ class AsyncLogging : public noncopyable
 	void doDone();
 	void threadWorker();
 };
-} // namespace logger
+} // namespace elog
 
 #endif

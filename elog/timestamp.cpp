@@ -1,14 +1,17 @@
-#include "logger/time_stamp.h"
+#include "elog/timestamp.h"
 #include <chrono>
 #include <cstdint>
 #include <ctime>
 #include <format>
 
-namespace logger
+namespace elog
 {
-extern const int kMicroSecond2Second = 1e6 * 1.0;
+const int kMicroSecond2Second = 1e6;
+} // namespace elog
 
-TimeStamp TimeStamp::now()
+using namespace elog;
+
+Timestamp Timestamp::now()
 {
 	auto now_us = std::chrono::time_point_cast<std::chrono::microseconds>(
 		std::chrono::system_clock::now());
@@ -18,32 +21,17 @@ TimeStamp TimeStamp::now()
 			now_us.time_since_epoch())
 			.count();
 
-	// auto seconds =
-	// std::chrono::time_point_cast<std::chrono::seconds>(now_us);
-
-	// auto micro_seconds = now_us - seconds;
-
-	// int curent_second = std::chrono::system_clock::to_time_t(seconds);
-
-	// if (cached_time_.last_second != curent_second)
-	// {
-	// 	// todo
-	// }
-
-	// static thread_local std::string final_time_stamp;
-	// final_time_stamp = std::format(
-	// 	"{}{:06d}", cached_time_.formatted_time_stamp, micro_seconds.count());
-
-	return TimeStamp(micro_seconds);
+	return Timestamp(micro_seconds);
 }
-TimeStamp TimeStamp::addTime(TimeStamp time_stamp, double add_seconds)
+
+Timestamp Timestamp::addTime(Timestamp timestamp, double add_seconds)
 {
 	int64_t delta = static_cast<int64_t>(add_seconds * kMicroSecond2Second);
 
-	return TimeStamp(time_stamp.micro_seconds_ + delta);
+	return Timestamp(timestamp.micro_seconds_ + delta);
 }
 
-std::string TimeStamp::toFormattedString(bool date, bool time) const
+std::string Timestamp::toFormattedString(bool date, bool time) const
 {
 	if (!date && !time)
 	{
@@ -73,9 +61,8 @@ std::string TimeStamp::toFormattedString(bool date, bool time) const
 					   tm_time.tm_min, tm_time.tm_sec, remaining_micro_seconds);
 }
 
-std::ostream& operator<<(std::ostream& os, const TimeStamp& ts)
+std::ostream& operator<<(std::ostream& os, const Timestamp& ts)
 {
 	os << ts.toFormattedString();
 	return os;
 }
-} // namespace logger
