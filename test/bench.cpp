@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 	set_log_threshold(elog::LogLevel::ERROR);
 
 	const int thread_count = 8;
-	const int logs_per_thread = 100000;
+	const int logs_per_thread = 1000000;
 	const int expected_logs = thread_count * logs_per_thread;
 	std::vector<std::thread> threads;
 

@@ -1,13 +1,14 @@
 #ifndef ELOG_ASYNC_LOGGER_HPP
 #define ELOG_ASYNC_LOGGER_HPP
 
-#include "elog/buffer.hpp"
+#include "elog/buffer_fast.hpp"
 #include "elog/file_manager.hpp"
 #include <atomic>
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
+#include <iostream>
 #include <latch>
 #include <mutex>
 #include <string>
@@ -96,28 +97,67 @@ inline void AsyncLogger::append_message(const std::string& msg)
 	{
 		return;
 	}
-
+	if (!cur_buf_.push(msg))
 	{
 		std::lock_guard<std::mutex> lock(mtx_);
+		// Check again if cur_buf_ is still full, as another thread might have
+		// already swapped it
 		if (!cur_buf_.full())
 		{
-			cur_buf_.push(msg);
-			return;
-		}
+			// Buffer was already swapped by another thread, just push the
+			// message
+			if (!cur_buf_.push(msg))
+			{
+				// If push still fails, proceed with swapping
+				bufs_.push_back(std::move(cur_buf_));
 
-		bufs_.push_back(std::move(cur_buf_));
-		if (next_buf_.check())
-		{
-			cur_buf_ = std::move(next_buf_);
+				if (next_buf_.check())
+				{
+					cur_buf_ = std::move(next_buf_);
+				}
+				else
+				{
+					cur_buf_ = LoggerBuffer();
+				}
+				cv_.notify_one();
+				// Now push the message to the new buffer
+				if (!cur_buf_.push(msg))
+				{
+					// If this still fails, we have a problem
+					// Add a fallback to ensure the message is not lost
+					LoggerBuffer emergency_buf;
+					emergency_buf.push(msg);
+					bufs_.push_back(std::move(emergency_buf));
+					cv_.notify_one();
+				}
+			}
 		}
 		else
 		{
-			cur_buf_ = LoggerBuffer();
-		}
+			// Buffer is still full, swap it
+			bufs_.push_back(std::move(cur_buf_));
 
-		cur_buf_.push(msg);
+			if (next_buf_.check())
+			{
+				cur_buf_ = std::move(next_buf_);
+			}
+			else
+			{
+				cur_buf_ = LoggerBuffer();
+			}
+			cv_.notify_one();
+			// Now push the message to the new buffer
+			if (!cur_buf_.push(msg))
+			{
+				// If this still fails, we have a problem
+				// Add a fallback to ensure the message is not lost
+				LoggerBuffer emergency_buf;
+				emergency_buf.push(msg);
+				bufs_.push_back(std::move(emergency_buf));
+				cv_.notify_one();
+			}
+		}
 	}
-	cv_.notify_one();
 }
 
 inline void AsyncLogger::run(const std::string& dir, const std::string& prefix,
@@ -170,16 +210,16 @@ inline void AsyncLogger::run(const std::string& dir, const std::string& prefix,
 		}
 
 		// 暂时禁用缓冲区数量限制，以便测试日志是否丢失
-		// if (bufs_to_write.size() > 100)
-		// {
-		// 	std::string err = std::format(
-		// 		"Dropped log messages at {}, {} larger LoggerBuffers\n",
-		// 		std::chrono::system_clock::now(), bufs_to_write.size() - 2);
-		// 	std::cerr << err;
+		if (bufs_to_write.size() > 100)
+		{
+			std::string err = std::format(
+				"Dropped log messages at {}, {} larger LoggerBuffers\n",
+				std::chrono::system_clock::now(), bufs_to_write.size() - 2);
+			std::cerr << err;
 
-		// 	out_file.append(err.c_str(), err.size());
-		// 	bufs_to_write.erase(bufs_to_write.begin() + 2, bufs_to_write.end());
-		// }
+			out_file.append(err.c_str(), err.size());
+			bufs_to_write.erase(bufs_to_write.begin() + 2, bufs_to_write.end());
+		}
 
 		for (const auto& buf : bufs_to_write)
 		{
