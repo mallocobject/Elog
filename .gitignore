@@ -1,4 +1,4 @@
-.cache
-build
-logs
-elog_beta
+.cache/
+build/
+logs/
+*.log

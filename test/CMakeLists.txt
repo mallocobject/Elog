@@ -1,13 +1,14 @@
-cmake_minimum_required(VERSION 3.25)
 project(test)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(Catch2 3 REQUIRED)
 
-add_executable(test bench.cpp)
+add_executable(elog_test elog.cpp)
 
-target_link_libraries(test PRIVATE elog)
+target_link_libraries(elog_test PRIVATE elog Catch2::Catch2WithMain)
 
-target_compile_definitions(test PRIVATE 
-    LYNX_WEB_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
-)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(elog_test PRIVATE -Wall -Wextra)
+endif()
+
+include(Catch)
+catch_discover_tests(elog_test)
