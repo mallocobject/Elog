@@ -55,7 +55,7 @@ target_link_libraries(your_target PRIVATE elog)
 #include <filesystem>
 
 int main() {
-    // 目录必须先存在：elog 不会替你建目录（见「已知限制」第 2 条）
+    // 目录必须先存在：elog 不会替你建目录
     std::filesystem::create_directories("logs");
 
     elog::set_log_path("logs", "app-", 100 * 1024 * 1024, std::chrono::seconds(3), 1024);
