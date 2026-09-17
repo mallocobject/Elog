@@ -1,4 +1,7 @@
 .cache/
 build/
+# 另外建出来的验证/压测构建目录，不要提交
+build-verify/
+build-*/
 logs/
 *.log

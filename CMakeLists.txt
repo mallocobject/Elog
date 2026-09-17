@@ -29,4 +29,6 @@ add_subdirectory(elog)
 if(BUILD_TESTING)
     add_subdirectory(test)
 endif()
+# 压测驱动：默认构建（可用 -DELOG_BUILD_STRESS=OFF 关闭），只依赖 elog 本身。
+add_subdirectory(stress)
 
