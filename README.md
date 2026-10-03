@@ -9,9 +9,10 @@
   </pre>
 
   <p align="center">
-    <img src="https://img.shields.io/badge/C%2B%2B-23-blue.svg" alt="C++23">
+    <img src="https://img.shields.io/badge/C%2B%2B-20-blue.svg" alt="C++20">
     <img src="https://img.shields.io/badge/header--only-yes-success.svg" alt="Header only">
     <img src="https://img.shields.io/badge/platform-Linux-red.svg" alt="Platform">
+    <img src="https://img.shields.io/badge/platform-Windows-0078D6.svg" alt="Platform">
     <img src="https://img.shields.io/badge/build-CMake-blueviolet.svg" alt="CMake">
     <img src="https://img.shields.io/badge/status-Developing-green.svg" alt="Developing">
   </p>
@@ -21,7 +22,7 @@
 
 ---
 
-一个 C++23 的异步文件日志库...
+一个 C++20 的异步文件日志库...
 
 
 ## 目录
@@ -33,7 +34,7 @@
 
 ## 快速开始
 
-要求：**GCC 14+**（依赖 C++23 `<print>`）、CMake 3.22+。
+要求：**GCC 13+**、CMake 3.22+。
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14
