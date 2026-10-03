@@ -1,10 +1,20 @@
 #pragma once
 
+#include <cerrno>
 #include <cstddef>
 #include <cstdio>
+#include <filesystem>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
+
+#ifdef _WIN32
+#define FWRITE_UNLOCKED _fwrite_nolock
+#else
+#define FWRITE_UNLOCKED fwrite_unlocked
+#endif
 
 namespace elog::details {
 inline void throw_system_error(const std::string &operation) {
@@ -15,10 +25,33 @@ inline void throw_runtime_error(const std::string &message) {
     throw std::runtime_error(message);
 }
 
+// UTF-8 路径 -> 本机路径。Windows 的 fopen 按 ANSI 代码页解释窄字符路径,
+// 日志目录含中文等非当前代码页字符时会直接打开失败;这里把 UTF-8 当真路径
+// 解释,再交给 _wfopen。std::filesystem::path 在 Windows 上以 wchar_t 为
+// value_type,因此 path::c_str() 正好是 _wfopen 需要的宽字符路径。
+inline std::filesystem::path to_platform_path(const std::string &utf8_path) {
+#ifdef _WIN32
+    return std::filesystem::path(std::u8string(
+        reinterpret_cast<const char8_t *>(utf8_path.data()), utf8_path.size()));
+#else
+    return std::filesystem::path(utf8_path);
+#endif
+}
+
+// "ab" = 追加 + 二进制。文本模式会把 \n 改写成 \r\n,使实际落盘字节数
+// 与 written_bytes() 的统计不符,滚动阈值随之失准。
+inline FILE *open_append_binary(const std::string &utf8_path) {
+#ifdef _WIN32
+    return _wfopen(to_platform_path(utf8_path).c_str(), L"ab");
+#else
+    return std::fopen(to_platform_path(utf8_path).c_str(), "ab");
+#endif
+}
+
 class FileAppender {
   public:
     explicit FileAppender(std::string path) : path_(std::move(path)) {
-        file_ = fopen(path_.c_str(), "ab");
+        file_ = open_append_binary(path_);
         if (!file_) {
             throw_system_error("Failed to open log file");
         }
@@ -61,7 +94,7 @@ inline void FileAppender::append(const char *data, size_t len) {
         return;
     }
 
-    const size_t written = fwrite_unlocked(data, 1, len, file_);
+    const size_t written = FWRITE_UNLOCKED(data, 1, len, file_);
 
     if (written != len) {
         if (ferror(file_)) {

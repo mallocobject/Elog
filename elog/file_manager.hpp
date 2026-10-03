@@ -6,6 +6,7 @@
 #include <format>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace elog::details {
@@ -84,13 +85,18 @@ inline void FileManager::roll_file(std::chrono::system_clock::time_point now) {
         std::chrono::floor<std::chrono::seconds>(now);
     last_day_ = std::chrono::floor<std::chrono::days>(now);
 
+    // 刻意不创建目录:目录不存在时打开失败,由 AsyncLogger 捕获后降级为
+    // 不写文件(见 test.cpp 的"日志目录不存在时降级"用例)。静默建目录会
+    // 掩盖配置写错的路径,这是本库明确的契约。
     std::chrono::zoned_time zt{std::chrono::current_zone(), last_roll_second_};
 
     // 同一秒内多次滚动时加序号后缀,避免反复 append 到同一个文件
+    // 文件名里不能出现 ':':Windows 会把它当作驱动器/备用数据流(ADS)分隔符,
+    // 打开必然失败。因此时分秒用 '-' 分隔,保证在 Windows 上是合法文件名。
     std::string path =
-        std::format("{}/{}{:%Y-%m-%dT%H:%M:%S}.log", dir_, prefix_, zt);
+        std::format("{}/{}{:%Y-%m-%dT%H-%M-%S}.log", dir_, prefix_, zt);
     if (path == current_path_) {
-        path = std::format("{}/{}{:%Y-%m-%dT%H:%M:%S}-{}.log",
+        path = std::format("{}/{}{:%Y-%m-%dT%H-%M-%S}-{}.log",
                            dir_,
                            prefix_,
                            zt,

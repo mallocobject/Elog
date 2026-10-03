@@ -8,9 +8,11 @@
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
+#include <format>
+#include <iostream>
 #include <memory>
 #include <mutex>
-#include <print>
+#include <string>
 #include <string_view>
 #include <thread>
 #include <vector>
@@ -167,16 +169,30 @@ inline void AsyncLogger::append_message(std::string_view msg) {
             return; // 快路径:一次 memcpy
         }
 
-        // 当前块写满:发布满块,换一块继续
-        ctx->full.push(ctx->cur);
+        // 当前块放不下整条消息:先填满剩余空间,再发布满块、换新块,
+        // 直到整条消息全部落块。单条消息可以远大于 LogBlock::kCap ——
+        // 早期实现换块后只 append 一次并丢弃返回值,超过 64KiB 的消息
+        // 因此被静默丢弃(既不截断也不报错)。
+        std::string_view rest = msg;
+        while (!rest.empty()) {
+            const size_t space = LogBlock::kCap - ctx->cur->len;
+            if (space == 0) {
+                ctx->full.push(ctx->cur);
+                wake = true;
 
-        LogBlock *fresh = ctx->take_free();
-        if (!fresh) {
-            fresh = new LogBlock();
+                LogBlock *fresh = ctx->take_free();
+                if (!fresh) {
+                    fresh = new LogBlock();
+                }
+                ctx->cur = fresh;
+                continue;
+            }
+
+            // substr 会按剩余长度自动收窄,append 必然成功
+            const std::string_view chunk = rest.substr(0, space);
+            ctx->cur->append(chunk);
+            rest.remove_prefix(chunk.size());
         }
-        ctx->cur = fresh;
-        ctx->cur->append(msg);
-        wake = true;
     }
 
     if (wake) {
@@ -196,7 +212,8 @@ inline void AsyncLogger::run(const std::string &dir,
             dir, prefix, roll_size, flush_interval, check_per_count);
     } catch (const std::exception &e) {
         // std::fprintf(stderr, "[elog] file logging disabled: %s\n", e.what());
-        std::println(stderr, "[elog] file logging disabled: {}", e.what());
+        std::cerr << std::format("[elog] file logging disabled: {}", e.what())
+                  << std::endl;
     }
 
     if (!out_file) {
@@ -261,8 +278,9 @@ inline void AsyncLogger::run(const std::string &dir,
                 out_file->flush();
             }
         } catch (const std::exception &e) {
-            // 文件故障:停止文件日志,终端日志不受影响
-            std::println(stderr, "[elog] file logging disabled: {}", e.what());
+            std::cerr << std::format("[elog] file logging disabled: {}",
+                                     e.what())
+                      << std::endl;
             file_ok = false;
             break;
         }
